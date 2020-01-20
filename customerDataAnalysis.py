@@ -1,54 +1,37 @@
-from pyspark.sql import SparkSession
+import pysession
+from base_df_create import CreateDF
+from schema_file import SchemaFile as sf
 from pyspark.sql import functions as f
 from pyspark.sql.types import *
 from pyspark.sql.functions import regexp_replace, unix_timestamp, from_unixtime, year, month
 
 if __name__ == "__main__":
-    spark = SparkSession.builder.appName("app").master("local").enableHiveSupport().getOrCreate()
-    # spark = SparkSession.builder.appName("app").master("yarn").enableHiveSupport().getOrCreate()
+    spark = pysession.SparkSess.sessionCreate("CustDataAnalysis", "local")
 
     # Load Product data to product Data Frame
-    productSchema = StructType([StructField("product_id", IntegerType(), False),
-                                StructField("product_name", StringType(), False),
-                                StructField("product_type", StringType(), False),
-                                StructField("product_version", StringType(), False),
-                                StructField("product_price", StringType(), False)])
-    productDF = spark.read.load("Dataset-Product.txt", format="csv", sep="|", header=False, schema=productSchema)
-    productDF = productDF.withColumn("product_price",
-                                     regexp_replace(productDF.product_price, '\$', '').cast(IntegerType()))
+    product_tmpDF = CreateDF.dataFrameCreate("Dataset-Sales.txt", "csv", "|", False, sf.salesSchema)
+    productDF = product_tmpDF.withColumn("product_price",
+                                         regexp_replace(product_tmpDF.product_price, '\$', '').cast(IntegerType()))
     productDF.show(5)
 
     # Load Customer data to product Data Frame
-    customerSchema = StructType([StructField("customer_id", IntegerType(), False),
-                                 StructField("customer_first_name", StringType(), True),
-                                 StructField("customer_last_name", StringType(), True),
-                                 StructField("phone_number", StringType(), True)])
+
     customerDF = spark.read.load("Dataset-Customer.txt", format="csv", sep="|", header=False,
-                                 schema=customerSchema)
+                                 schema=sf.customerSchema)
     customerDF.show(5)
 
     # Load Sales data to product Data Frame
-    salesSchema = StructType([StructField("transaction_id", IntegerType(), False),
-                              StructField("customer_id", IntegerType(), False),
-                              StructField("product_id", IntegerType(), False),
-                              StructField("timestamp", StringType(), False),
-                              StructField("total_amount", StringType(), False),
-                              StructField("total_quantity", IntegerType(), False)])
-    salesDF = spark.read.load("Dataset-Sales.txt", format="csv", sep="|", header=False, schema=salesSchema)
+    # salesDF = spark.read.load(spark, "Dataset-Sales.txt", "csv", "|", False, sf.salesSchema)
+
+    salesDF = spark.read.load("Dataset-Sales.txt", format="csv", sep="|", header=False, schema=sf.salesSchema)
     salesDF = salesDF.withColumn("total_amount", regexp_replace(salesDF.total_amount, "\$", "").cast(IntegerType())). \
         withColumn("timestamp",
                    from_unixtime(unix_timestamp(salesDF.timestamp, 'MM/dd/yy HH:mm:SS')).cast(TimestampType()))
     salesDF.show(5)
 
     # Load Refund data to product Data Frame
-    refundSchema = StructType([StructField('refund_id', IntegerType(), False),
-                               StructField('original_transaction_id', IntegerType(), False),
-                               StructField('customer_id', IntegerType(), False),
-                               StructField('product_id', IntegerType(), False),
-                               StructField('timestamp', StringType(), False),
-                               StructField('refund_amount', StringType(), False),
-                               StructField('refund_quantity', IntegerType(), False)])
-    refundDF = spark.read.load("Dataset-Refund.txt", format="csv", sep="|", header=False, schema=refundSchema)
+
+    refundDF = spark.read.load("Dataset-Refund.txt", format="csv", sep="|", header=False, schema=sf.refundSchema)
     refundDF = refundDF.withColumn('timestamp',
                                    from_unixtime(unix_timestamp(refundDF.timestamp, "MM/dd/yy HH:mm:ss")).cast(
                                        TimestampType())). \
@@ -79,8 +62,8 @@ if __name__ == "__main__":
     transCountByCustDF.show(5)
     tCountTop100CustDF = transCountByCustDF.orderBy("count", ascending=False).limit(100)
     # Uncomment below line while running in cluster
-    tCountTop100CustDF.write.saveAsTable("manoj_spark1.top_100_customer_transaction", mode="overwrite",
-                                         partitionBy=None)
+    # tCountTop100CustDF.write.saveAsTable("manoj_spark1.top_100_customer_transaction", mode="overwrite",
+    #                                   partitionBy=None)
 
     # Question4:Calculate the total amount of all transactions that happened in year 2013
     # and have not been refunded as of today.
@@ -138,7 +121,7 @@ if __name__ == "__main__":
     custSalesMay2013CountRanked_DF = custSalesMay2013count_DF.withColumn('rnk', dense_rank().over(spec))
     secondMostPurchaseMay2013DF = custSalesMay2013CountRanked_DF.where(custSalesMay2013CountRanked_DF.rnk == 2)
     secondMostPurchaseMay2013DF.show(5)
-    secondMostPurchaseMay2013DF.write.saveAsTable("manoj_spark1.second_most_purchase_may2013")
+    # secondMostPurchaseMay2013DF.write.saveAsTable("manoj_spark1.second_most_purchase_may2013")
 
     # Question6:Find a product that has not been sold at least once (if any).
     distinct_soldProdidDF = salesDF.select(salesDF.product_id.alias("sold_prod_id")).distinct()
@@ -147,7 +130,7 @@ if __name__ == "__main__":
                                      productDF.product_id == distinct_soldProdidDF.sold_prod_id, "left")
     prodNotSoldDF = prodSalesJoinDF.where(prodSalesJoinDF.sold_prod_id.isNull())
     prodNotSoldDF.show(5)
-    prodNotSoldDF.write.saveAsTable("manoj_spark1.product_not_sold", mode="overwrite", partitionBy=None)
+    # prodNotSoldDF.write.saveAsTable("manoj_spark1.product_not_sold", mode="overwrite", partitionBy=None)
 
     # Question7:Calculate the total number of users who purchased the same product
     # consecutively at least 2 times on a given day.
@@ -160,4 +143,4 @@ if __name__ == "__main__":
     saleCountDF = salesDF.groupBy((year(salesDF.timestamp)).alias("sale_year")). \
         agg(f.count(salesDF.transaction_id).alias("sale_count")).orderBy("sale_year")
     saleCountDF.show()
-    saleCountDF.write.saveAsTable("manoj_spark1.sale_count_yearwise", mode="overwrite", partitionBy=None)
+    # saleCountDF.write.saveAsTable("manoj_spark1.sale_count_yearwise", mode="overwrite", partitionBy=None)
