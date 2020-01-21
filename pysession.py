@@ -6,8 +6,7 @@ class SparkSess:
         pass
 
     @staticmethod
-    def sessionCreate(appName, env=None):
-        env = ""
+    def session_create(appName, env=None):
         spark = None
         if env == "LOCAL":
             spark = SparkSession.builder.appName(appName).master("local").enableHiveSupport().getOrCreate()
