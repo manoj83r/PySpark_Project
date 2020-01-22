@@ -1,4 +1,4 @@
-# Question3: Get the Top 100 customers who are dosing the most of the transactions and store those in hive table
+# Req-3: Get the Top 100 customers who are dosing the most of the transactions and store those in hive table
 # to give it to Downstream
 def top_cust_trans(salesDF, customerDF, limit_value=0):
     trans_count_by_cust_df = salesDF.join(customerDF, salesDF.customer_id == customerDF.customer_id, "left"). \

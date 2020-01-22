@@ -59,14 +59,14 @@ if __name__ == "__main__":
         select(productDF.product_name, productDF.product_type, salesDF.product_id)
     distOfSales_DF.printSchema()
 
-    # Question2: Display the distribution of sales by product name and product type.
+    # Req-2: Display the distribution of sales by product name and product type.
     distOfSales_DF_count = distOfSales_DF.groupBy(distOfSales_DF.product_name, distOfSales_DF.product_type).count()
     distOfSales_DF_count.coalesce(1).write.save("DistOfSales_count", format="csv", mode="overwrite",
                                                 header=True, sep=",")
     print("Distribution of sales by product name and product type is stored "
           "in the Directory DistOfSales_count in the csv format")
 
-    # Question3: Get the Top 100 customers who are dosing the most of the transactions and store those
+    # Req-3: Get the Top 100 customers who are dosing the most of the transactions and store those
     # tables in hive table to give it to Downstream
     saleByCustomerDF = salesDF.join(customerDF, salesDF.customer_id == customerDF.customer_id, "left"). \
         select(salesDF.transaction_id, salesDF.customer_id, customerDF.customer_first_name,
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     tCountTop100CustDF.write.saveAsTable("manoj_spark1.top_100_customer_transaction", mode="overwrite",
                                          partitionBy=None)
 
-    # Question4:Calculate the total amount of all transactions that happened in year 2013
+    # Req-4:Calculate the total amount of all transactions that happened in year 2013
     # and have not been refunded as of today.
     sales2013DF = salesDF.where(year(salesDF.timestamp) == '2013')
     # Join Sales table with Refund Table
@@ -94,7 +94,7 @@ if __name__ == "__main__":
         sales2013NotRefunded.select(sales2013NotRefunded.total_amount).groupBy().sum().collect()[0][0]
     print("Total amount 2013 transactions that have not been refunded=" + str(totAmtSales2013NotRefunded))
 
-    # Question5:Display the customer name who made the second most purchases in the month of May2013.
+    # Req-5:Display the customer name who made the second most purchases in the month of May2013.
     # Refunds should be excluded.
     salesMay2013DF = salesDF.where((year(salesDF.timestamp) == '2013') & (month(salesDF.timestamp) == '05'))
     salesMay2013NotRefunded = salesMay2013DF.join(refundDF, salesDF.transaction_id == refundDF.original_transaction_id,
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     secondMostPurchaseMay2013DF.show(5)
     secondMostPurchaseMay2013DF.write.saveAsTable("manoj_spark1.second_most_purchase_may2013")
 
-    # Question6:Find a product that has not been sold at least once (if any).
+    # Req-6:Find a product that has not been sold at least once (if any).
     distinct_soldProdidDF = salesDF.select(salesDF.product_id.alias("sold_prod_id")).distinct()
     distinct_soldProdidDF.show(5)
     prodSalesJoinDF = productDF.join(distinct_soldProdidDF,
@@ -149,14 +149,14 @@ if __name__ == "__main__":
     prodNotSoldDF.show(5)
     prodNotSoldDF.write.saveAsTable("manoj_spark1.product_not_sold", mode="overwrite", partitionBy=None)
 
-    # Question7:Calculate the total number of users who purchased the same product
+    # Req-7:Calculate the total number of users who purchased the same product
     # consecutively at least 2 times on a given day.
     salesCustDateGrpDF = salesDF.groupBy(salesDF.customer_id, salesDF.timestamp.cast(DateType())). \
         agg(f.count(salesDF.transaction_id).alias("transCount"))
     numOfUserConsPur = salesCustDateGrpDF.where(salesCustDateGrpDF.transCount > 1).count()
     print("Number of User did Consecutive Purchase of Same Product on same day=" + str(numOfUserConsPur))
 
-    # Question8:Calculate the total Sale happened year wise and store that data in Hive Tables to give to downstream
+    # Req-8:Calculate the total Sale happened year wise and store that data in Hive Tables to give to downstream
     saleCountDF = salesDF.groupBy((year(salesDF.timestamp)).alias("sale_year")). \
         agg(f.count(salesDF.transaction_id).alias("sale_count")).orderBy("sale_year")
     saleCountDF.show()

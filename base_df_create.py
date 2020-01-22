@@ -2,6 +2,7 @@ from pyspark.sql.types import *
 from schema_file import SchemaFile as sf
 from pyspark.sql.functions import regexp_replace, unix_timestamp, from_unixtime
 
+
 class CreateDF:
     def __init__(self):
         pass
@@ -17,7 +18,7 @@ class CreateDF:
         except:
             print("Problem in creating Data Frame for:",file_name)
 
-    # UDF to Load Product data to product Data Frame
+    # Load Product data to product Data Frame
     def product_df(self, spark):
         product_tmp_df = self.data_frame_create(spark, None, "Dataset-Product.txt", "csv", "|", False, sf.productSchema)
         product_df = product_tmp_df.withColumn("product_price", regexp_replace(product_tmp_df.product_price, '\$', ''). \

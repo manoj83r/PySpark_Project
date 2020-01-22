@@ -26,18 +26,22 @@ if __name__ == "__main__":
     refundDF = createDF.refund_df(spark)
     refundDF.show(5)
 
-    # Question2: Display the distribution of sales by product name and product type.
+    # Req-2: Display the distribution of sales by product name and product type.
     dist_of_sales.dist_of_sales(salesDF, productDF)
-    # Question3: Get the Top 100 customers who are dosing the most of the transactions and store those
-    # tables in hive table to give it to Downstream
+
+    # Req-3: Get the Top 100 customers who are dosing the most of the transactions
+    # and store tables in hive table to give it to Downstream
     top_customers.top_cust_trans(salesDF, customerDF, 100)
-    # Question4:Calculate the total amount of all transactions that happened in year 2013 and
+
+    # Req-4:Calculate the total amount of all transactions that happened in year 2013 and
     # have not been refunded as of today.
     total_trans_without_refund.total_trans_not_refunded(salesDF, refundDF, '2013')
-    # Question5:Display the customer name who made the second most purchases in the month of May2013.
+
+    # Req-5:Display the customer name who made the second most purchases in the month of May2013.
     # Refunds should be excluded.
     cust_details_most_purchase.cust_with_n_rank_purchase(salesDF, refundDF, customerDF, 2, '05', '2013')
-    # Question6:Find a product that has not been sold at least once (if any). Get Distinct product id
+
+    # Req-6:Find a product that has not been sold at least once (if any). Get Distinct product id
     distinct_soldProdidDF = salesDF.select(salesDF.product_id.alias("sold_prod_id")).distinct()
     prodSalesJoinDF = productDF.join(distinct_soldProdidDF,
                                      productDF.product_id == distinct_soldProdidDF.sold_prod_id, "left")
@@ -45,13 +49,13 @@ if __name__ == "__main__":
     prodNotSoldDF.show(5)
     # prodNotSoldDF.write.saveAsTable("manoj_spark1.product_not_sold", mode="overwrite", partitionBy=None)
 
-    # Question7:Calculate the total number of users who purchased the same product at least 2 times on a given day.
+    # Req-7:Calculate the total number of users who purchased the same product at least 2 times on a given day.
     salesCustDateGrpDF = salesDF.groupBy(salesDF.customer_id, salesDF.timestamp.cast(DateType())). \
         agg(f.count(salesDF.transaction_id).alias("transCount"))
     numOfUserConsPur = salesCustDateGrpDF.where(salesCustDateGrpDF.transCount > 1).count()
     print("Number of User did Consecutive Purchase of Same Product on same day=" + str(numOfUserConsPur))
 
-    # Question8:Calculate the total Sale happened year wise and store that data in Hive Tables to give to downstream
+    # Req-8:Calculate the total Sale happened year wise and store that data in Hive Tables to give to downstream
     saleCountDF = salesDF.groupBy((year(salesDF.timestamp)).alias("sale_year")). \
         agg(f.count(salesDF.transaction_id).alias("sale_count")).orderBy("sale_year")
     saleCountDF.show()

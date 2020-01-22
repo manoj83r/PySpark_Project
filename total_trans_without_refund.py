@@ -1,6 +1,6 @@
 from pyspark.sql.functions import year
 
-# Question4:Calculate the total amount of all transactions that happened in 2013 and have not been refunded as of today
+# Req-4:Calculate the total amount of all transactions that happened in 2013 and have not been refunded as of today
 def total_trans_not_refunded(salesDF, refundDF, yearValue='9999'):
     sales2013_df = salesDF.where(year(salesDF.timestamp) == yearValue)
     # Join Sales table with Refund Table
