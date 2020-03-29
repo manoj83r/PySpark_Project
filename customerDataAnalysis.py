@@ -1,3 +1,4 @@
+import sys
 from pysession import SparkSess
 from base_df_create import CreateDF
 from pyspark.sql.types import *
@@ -10,7 +11,7 @@ import cust_details_most_purchase
 
 
 if __name__ == "__main__":
-    spark = SparkSess().session_create("CustDataAnalysis", "LOCAL")
+    spark = SparkSess().session_create("CustDataAnalysis", sys.argv[1])
 
     createDF = CreateDF()
     # Load Product data to product Data Frame
